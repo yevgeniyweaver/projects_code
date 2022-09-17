@@ -235,69 +235,6 @@ class SspController extends Controller
         }
     }
 
-    public function index2()
-    {
-        $cookieStatus = Cookie::get('tbl_ssp_status');
-
-        $statusInt = getTblStatusSsp($cookieStatus);
-        $statusTxt = getTxtStatus($cookieStatus);
-
-        $now = new \DateTime;
-        $week_ago = new \DateTime;
-        $week_ago->modify('-6 day');
-        $from = $week_ago->format('Y-m-d');
-        $to = $now->format('Y-m-d');
-
-        $listSSP = (new SettingsSSP)->getListSspWithManager($statusInt);
-
-        $arrayTrafTypes = json_encode((new TrafficQualityTypes)->pluck('type', 'id')->toArray());
-        $listSspTrafTypes = (new SspTrafficQuality)->getSspTypes();
-
-        $regionQps = [];
-        $totalQps = 0;
-        if ($listSSP) {
-            $regionQps = [];
-            foreach ($listSSP as $sspArr) {
-                if (!isset($regionQps[$sspArr['region']])) {
-                    $regionQps[$sspArr['region']] = 0;
-                }
-                $regionQps[$sspArr['region']] += $sspArr['qps'];
-            }
-
-            arsort($regionQps);
-            $regionQps = $regionQps;
-            $totalQps = array_sum($regionQps);
-        }
-
-        $listManagers = getListCompanyManager($listSSP);
-
-        if (in_array(app()->project->name, [Project::SMARTY_ADS, Project::GOTHAM_ADS, Project::BIZZ_CLICK, Project::ACUITY])) {
-            $winRate = (new Rates)->getWinRate('ssp');
-        } else {
-            $winRate = (new Rates)->getWinRateOld();
-        }
-
-        $listRegions = (new Servers)->getAllRegions();
-
-        $listSspCompanyWithEP = $this->prepareListSspCompanyWithEndpoints($listSSP, $winRate);
-
-        return view('ssp.list2', [
-            'statusTxt' => $statusTxt,
-            'listSspTrafTypes' => $listSspTrafTypes,
-            'dateFrom' => $from,
-            'dateTo' => $to,
-            'totalQps' => $totalQps,
-            'regionQps' => $regionQps,
-            'listSsp' => $listSspCompanyWithEP,
-            'arrayTrafTypes' => $arrayTrafTypes,
-            'listManagers' => $listManagers,
-            'activeManager' => Cookie::get('activeManagerSsp'),
-            'winRate' => $winRate,
-            'listRegions' => $listRegions,
-            'selectedRegion' => Cookie::get('selectedRegionSsp') ?? false,
-        ]);
-    }
-
     public function getDataByCompany(Request $request, SspList $sspList)
     {
         $cookieStatus = Cookie::get('tbl_ssp_status');
